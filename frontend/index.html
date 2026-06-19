@@ -1,0 +1,185 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Locator Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;family=Syne:wght@400;600;700;800&amp;display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+  <div class="noise"></div>
+
+  <header class="site-header">
+    <div class="logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">SmartLocator<span class="logo-accent">.AI</span></span>
+    </div>
+    <nav class="header-nav">
+    </nav>
+    <div class="header-status">
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+
+      <h1 class="hero-title">
+        Generate <span class="grad-text">Reliable Locators</span><br>
+        for Any Web Page
+      </h1>
+      <p class="hero-sub">
+        Paste a URL or raw HTML · Get XPath &amp; CSS locators ranked by reliability · Export Selenium-ready code
+      </p>
+    </section>
+
+    <!-- Input Panel -->
+    <section class="input-panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="url" onclick="switchTab('url',this)">
+          <span class="tab-icon">🌐</span> Analyze URL
+        </button>
+        <button class="tab" data-tab="html" onclick="switchTab('html',this)">
+          <span class="tab-icon">📄</span> Paste HTML
+        </button>
+      </div>
+
+      <!-- URL tab -->
+      <div id="url-panel" class="tab-panel">
+        <div class="url-row">
+          <input id="url-input" type="url" class="text-input" placeholder="https://example.com">
+          <select id="tag-filter" class="select-input">
+            <option value="">All Elements</option>
+            <option value="input">input</option>
+            <option value="button">button</option>
+            <option value="a">a (links)</option>
+            <option value="select">select</option>
+            <option value="textarea">textarea</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- HTML tab -->
+      <div id="html-panel" class="tab-panel hidden">
+
+        <!-- HOW TO GET RAW HTML — INSTRUCTION NOTE -->
+        <div class="html-note">
+          <div class="note-head">
+            <span class="note-icon">📋</span>
+            <strong>How to Get Raw HTML of Any Web Page</strong>
+            <button class="note-toggle" onclick="toggleNote(this)">▲ Hide</button>
+          </div>
+          <div class="note-body" id="note-body">
+            <div class="methods-grid">
+              <div class="method-card">
+                <div class="method-num">01</div>
+                <div class="method-info">
+                  <div class="method-title">View Page Source <span class="badge-easy">Easiest</span></div>
+                  <p>Open the page, press <kbd>Ctrl+U</kbd> (Win) or <kbd>⌘+U</kbd> (Mac).<br>
+                    New tab opens → <kbd>Ctrl+A</kbd> → <kbd>Ctrl+C</kbd> → paste below.</p>
+                  <div class="method-warn">⚠️ Static source only — JS-rendered content won't appear.</div>
+                </div>
+              </div>
+              <div class="method-card">
+                <div class="method-num">02</div>
+                <div class="method-info">
+                  <div class="method-title">DevTools Elements Tab <span class="badge-rec">Recommended</span></div>
+                  <p>Right-click page → <em>Inspect</em> → right-click <code>&lt;html&gt;</code> tag<br>
+                    → <strong>Copy → Copy outerHTML</strong> → paste below.</p>
+                  <div class="method-tip">💡 Right-click any specific <code>&lt;form&gt;</code> for partial HTML.</div>
+                </div>
+              </div>
+              <div class="method-card">
+                <div class="method-num">03</div>
+                <div class="method-info">
+                  <div class="method-title">DevTools Console <span class="badge-live">Live DOM</span></div>
+                  <p>Press <kbd>F12</kbd> → Console tab → type command and press Enter:</p>
+                  <div class="cmd-row">
+                    <code id="copy-cmd">copy(document.documentElement.outerHTML)</code>
+                    <button onclick="copyCmd()" class="cmd-copy-btn">📋 Copy</button>
+                  </div>
+                  <div class="method-tip">💡 Best for login-protected or JavaScript-heavy pages.</div>
+                </div>
+              </div>
+              <div class="method-card">
+                <div class="method-num">04</div>
+                <div class="method-info">
+                  <div class="method-title">Save Page As <span class="badge-off">Offline</span></div>
+                  <p>Press <kbd>Ctrl+S</kbd> → Save as: <strong>Webpage, HTML Only</strong><br>
+                    Open saved <code>.html</code> in VS Code → Select All → Copy → paste below.</p>
+                  <div class="method-warn">⚠️ Choose "HTML Only" not "Complete" to avoid extra folders.</div>
+                </div>
+              </div>
+            </div>
+            <div class="note-global-tip">
+              🚀 <strong>Quick Pick:</strong> Use <strong>Method 02</strong> for most pages.
+              Use <strong>Method 03</strong> for React/Angular SPAs or pages that require login.
+            </div>
+          </div>
+        </div><!-- end html-note -->
+
+        <label class="textarea-label">↓ Paste your copied HTML here</label>
+        <textarea id="html-input" class="code-textarea" rows="10" placeholder="&lt;!DOCTYPE html&gt;
+&lt;html&gt;...paste your raw HTML here...&lt;/html&gt;"></textarea>
+      </div><!-- end html-panel -->
+
+      <button id="analyze-btn" onclick="analyzePage()">
+        <span class="btn-icon">⚡</span> Analyze Page
+      </button>
+    </section>
+
+    <!-- Loading -->
+    <div id="loading" class="loading hidden">
+      <div class="loader-ring"></div>
+      <span>Analyzing page elements...</span>
+    </div>
+
+    <!-- Results -->
+    <section id="results" class="results hidden">
+      <div class="results-bar">
+        <div class="results-meta">
+          <span id="total-count" class="result-count"></span>
+          <span id="page-title-display" class="page-title-display"></span>
+        </div>
+        <div class="results-controls">
+          <input id="search-box" class="search-input" type="text" placeholder="🔎  Filter by tag, text, attribute..."
+            oninput="filterElements()">
+          <select id="reliability-filter" class="select-input sm" onchange="filterElements()">
+            <option value="">All Reliability</option>
+            <option value="high">🟢 HIGH only</option>
+            <option value="medium">🟡 MEDIUM only</option>
+            <option value="low">🔴 LOW only</option>
+          </select>
+          <button type="button" id="export-pom-btn" class="export-btn">⬇ Export POM</button>
+        </div>
+      </div>
+      <div id="elements-grid" class="elements-grid"></div>
+      <div id="no-results" class="no-results hidden">No elements match your filter.</div>
+    </section>
+  </main>
+
+  <!-- Detail Modal -->
+  <div id="modal" class="modal hidden" onclick="handleModalBg(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js?v=2"></script>
+
+
+</body>
+
+</html>
