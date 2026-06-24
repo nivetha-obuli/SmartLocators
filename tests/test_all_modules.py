@@ -503,7 +503,79 @@ class TestAPI:
         assert resp.status_code == 200
         code = resp.json()["code"]
         assert "require(\"playwright\")" in code
-        assert "page.locator(\"xpath=//*[@id=\"username\"]\")" in code
+        assert 'page.locator("xpath=//*[@id=\\"username\\"]")' in code
+
+    def test_generate_playwright_js_code_with_testid(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "css",
+            "locator_value": '[data-testid="user-input"]',
+            "target":        "playwright",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "page.getByTestId(\"user-input\")" in code
+
+    def test_generate_playwright_js_code_with_placeholder(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//input[@placeholder="Enter username"]',
+            "target":        "playwright",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "page.getByPlaceholder(\"Enter username\")" in code
+
+    def test_generate_playwright_js_code_with_alt(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[@alt="Profile image"]',
+            "target":        "playwright",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "page.getByAltText(\"Profile image\")" in code
+
+    def test_generate_playwright_js_code_with_title(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[@title="Help"]',
+            "target":        "playwright",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "page.getByTitle(\"Help\")" in code
+
+    def test_generate_playwright_js_code_with_role(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[@role="button"]',
+            "target":        "playwright",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "page.getByRole(\"button\")" in code
+
+    def test_generate_playwright_python_code_with_text(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//button[text()="Login"]',
+            "target":        "playwright",
+            "language":      "python",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "page.get_by_text(\"Login\")" in code
  
     def test_generate_cypress_code(self, client):
         resp = client.post("/validate/generate-code", json={
@@ -517,6 +589,150 @@ class TestAPI:
         code = resp.json()["code"]
         assert "cy.get(\".btn-primary\")" in code
         assert "cy.visit(\"https://your-target-url.com\")" in code
+
+    def test_generate_cypress_code_with_testid(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "css",
+            "locator_value": '[data-testid="user-input"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([data-testid=\"user-input\"])" in code
+
+    def test_generate_cypress_code_with_placeholder(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//input[@placeholder="Enter username"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([placeholder=\"Enter username\"])" in code
+
+    def test_generate_cypress_code_with_role(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[@role="button"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([role=\"button\"])" in code
+
+    def test_generate_cypress_code_with_alt(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[@alt="Profile image"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([alt=\"Profile image\"])" in code
+
+    def test_generate_cypress_code_with_title(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[@title="Help"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([title=\"Help\"])" in code
+
+    def test_generate_cypress_code_with_aria_label(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "css",
+            "locator_value": '[aria-label="Password field"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([aria-label=\"Password field\"])" in code
+
+    def test_generate_cypress_code_with_label_attr(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "css",
+            "locator_value": '[label="Username"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([label=\"Username\"])" in code
+
+    def test_generate_cypress_code_with_aria_label_contains(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[contains(@aria-label, "Password field")]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([aria-label=\"Password field\"])" in code
+
+    def test_generate_cypress_code_with_title_contains(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[contains(@title, "Help")]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([title=\"Help\"])" in code
+
+    def test_generate_cypress_code_with_alt_contains(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[contains(@alt, "Profile image")]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([alt=\"Profile image\"])" in code
+
+    def test_generate_cypress_code_with_placeholder_contains(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[contains(@placeholder, "Enter username")]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get([placeholder=\"Enter username\"])" in code
+
+    def test_generate_cypress_code_with_text(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//button[text()="Login"]',
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.contains(\"Login\")" in code
  
     def test_export_pom_endpoint(self, client):
         # First analyze to get elements

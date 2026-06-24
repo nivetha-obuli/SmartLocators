@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import re
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -222,14 +223,97 @@ def _playwright_selector(locator_type: LocatorType, locator_value: str) -> str:
     return f"xpath={locator_value}" if locator_type == LocatorType.XPATH else locator_value
 
 
+def _playwright_getby_helper(attr: str, value: str):
+    if attr in ("data-testid", "data-test", "data-cy", "data-qa", "data-automation-id"):
+        return "test_id", value
+    if attr == "role":
+        return "role", value
+    if attr == "placeholder":
+        return "placeholder", value
+    if attr in ("aria-label", "aria-labelledby", "label"):
+        return "label", value
+    if attr == "alt":
+        return "alt", value
+    if attr == "title":
+        return "title", value
+    return None
+
+
+def _playwright_getby_details(locator_type: LocatorType, locator_value: str):
+    if locator_type == LocatorType.CSS:
+        match = re.search(r'\[([A-Za-z0-9\-_]+)=["\']([^"\']+)["\']\]', locator_value)
+        if match:
+            return _playwright_getby_helper(match.group(1), match.group(2))
+        return None
+
+    # XPath: try attribute-based getBy mappings first
+    attr_match = re.search(r'@([A-Za-z0-9\-_]+)=["\']([^"\']+)["\']', locator_value)
+    if attr_match:
+        helper = _playwright_getby_helper(attr_match.group(1), attr_match.group(2))
+        if helper:
+            return helper
+
+    # XPath by text patterns
+    exact_text = re.search(r'text\(\)\s*=\s*["\'](.+?)["\']', locator_value)
+    if exact_text:
+        return "text", exact_text.group(1)
+
+    contains_text = re.search(r'contains\(\s*text\(\)\s*,\s*["\'](.+?)["\']\s*\)', locator_value)
+    if contains_text:
+        return "text", contains_text.group(1)
+
+    return None
+
+
+def _playwright_locator_expression(
+    locator_type: LocatorType,
+    locator_value: str,
+    language: CodeGenerationLanguage,
+) -> str:
+    getby = _playwright_getby_details(locator_type, locator_value)
+    if getby:
+        method_key, value = getby
+        if language == CodeGenerationLanguage.PYTHON:
+            method_names = {
+                "test_id": "get_by_test_id",
+                "role": "get_by_role",
+                "placeholder": "get_by_placeholder",
+                "text": "get_by_text",
+                "label": "get_by_label",
+                "alt": "get_by_alt_text",
+                "title": "get_by_title",
+            }
+        else:
+            method_names = {
+                "test_id": "getByTestId",
+                "role": "getByRole",
+                "placeholder": "getByPlaceholder",
+                "text": "getByText",
+                "label": "getByLabel",
+                "alt": "getByAltText",
+                "title": "getByTitle",
+            }
+        method = method_names.get(method_key)
+        if method:
+            return f'page.{method}({json.dumps(value)})'
+
+    selector = _playwright_selector(locator_type, locator_value)
+    return f'page.locator({json.dumps(selector)})'
+
+
+def _playwright_needs_first(locator_expr: str) -> bool:
+    return locator_expr.startswith("page.locator(")
+
+
 def generate_playwright_code(
     locator_type: LocatorType,
     locator_value: str,
     language: CodeGenerationLanguage,
 ) -> str:
-    selector = _playwright_selector(locator_type, locator_value)
+    locator_expr = _playwright_locator_expression(locator_type, locator_value, language)
 
     if language == CodeGenerationLanguage.TS:
+        first_call = ".first()" if _playwright_needs_first(locator_expr) else ""
         return f'''import {{ chromium }} from "playwright";
 
 (async () => {{
@@ -239,7 +323,7 @@ def generate_playwright_code(
 
   await page.goto("https://your-target-url.com");
 
-  const element = page.locator("{selector}").first();
+  const element = {locator_expr}{first_call};
   await element.click();
 
   await browser.close();
@@ -247,6 +331,7 @@ def generate_playwright_code(
 '''
 
     if language == CodeGenerationLanguage.JS:
+        first_call = ".first()" if _playwright_needs_first(locator_expr) else ""
         return f'''const {{ chromium }} = require("playwright");
 
 (async () => {{
@@ -256,13 +341,14 @@ def generate_playwright_code(
 
   await page.goto("https://your-target-url.com");
 
-  const element = page.locator("{selector}").first();
+  const element = {locator_expr}{first_call};
   await element.click();
 
   await browser.close();
 }})();
 '''
 
+    first_call = ".first" if _playwright_needs_first(locator_expr) else ""
     return f'''from playwright.sync_api import sync_playwright
 
 with sync_playwright() as playwright:
@@ -270,11 +356,80 @@ with sync_playwright() as playwright:
     page = browser.new_page()
     page.goto("https://your-target-url.com")
 
-    element = page.locator("{selector}").first
+    element = {locator_expr}{first_call}
     element.click()
 
     browser.close()
 '''
+
+
+
+def _cypress_getby_helper(attr: str, value: str) -> str | None:
+    supported_attrs = {
+        "data-testid",
+        "data-test",
+        "data-cy",
+        "data-qa",
+        "data-automation-id",
+        "placeholder",
+        "role",
+        "alt",
+        "title",
+        "aria-label",
+        "aria-labelledby",
+        "label",
+        "id",
+        "name",
+    }
+    if attr in supported_attrs:
+        return f"cy.get([{attr}={json.dumps(value)}])"
+    return None
+
+
+def _cypress_locator_expression(locator_type: LocatorType, locator_value: str) -> str:
+    if locator_type == LocatorType.CSS:
+        match = re.search(r'\[([A-Za-z0-9\-_]+)=\s*["\']([^"\']+)["\']\]', locator_value)
+        if match:
+            helper = _cypress_getby_helper(match.group(1), match.group(2))
+            if helper:
+                return helper
+        return f'cy.get("{locator_value}")'
+
+    if locator_type == LocatorType.XPATH:
+        attr_match = re.search(r'@([A-Za-z0-9\-_]+)=\s*["\']([^"\']+)["\']', locator_value)
+        if attr_match:
+            helper = _cypress_getby_helper(attr_match.group(1), attr_match.group(2))
+            if helper:
+                return helper
+
+        attr_contains = re.search(
+            r'contains\(\s*@([A-Za-z0-9\-_]+)\s*,\s*["\']([^"\']+)["\']\s*\)',
+            locator_value,
+        )
+        if attr_contains:
+            helper = _cypress_getby_helper(attr_contains.group(1), attr_contains.group(2))
+            if helper:
+                return helper
+
+        exact_text = re.search(r'text\(\)\s*=\s*["\'](.+?)["\']', locator_value)
+        if exact_text:
+            return f'cy.contains({json.dumps(exact_text.group(1))})'
+
+        contains_text = re.search(r'contains\(\s*text\(\)\s*,\s*["\'](.+?)["\']\s*\)', locator_value)
+        if contains_text:
+            return f'cy.contains({json.dumps(contains_text.group(1))})'
+
+        return f'cy.xpath("{locator_value}")'
+
+    return f'cy.get("{locator_value}")'
+
+
+def _cypress_needs_first(locator_call: str) -> bool:
+    if locator_call.startswith("cy.get(["):
+        return False
+    if locator_call.startswith("cy.contains("):
+        return False
+    return locator_call.startswith("cy.get(") or locator_call.startswith("cy.xpath(")
 
 
 def generate_cypress_code(
@@ -282,16 +437,14 @@ def generate_cypress_code(
     locator_value: str,
     language: CodeGenerationLanguage,
 ) -> str:
-    if locator_type == LocatorType.XPATH:
-        locator_call = f'cy.xpath("{locator_value}")'
-    else:
-        locator_call = f'cy.get("{locator_value}")'
+    locator_call = _cypress_locator_expression(locator_type, locator_value)
+    first_suffix = ".first()" if _cypress_needs_first(locator_call) else ""
 
     if language == CodeGenerationLanguage.TS:
         return f'''describe("SmartLocator example", () => {{
   it("locates and clicks the element", () => {{
     cy.visit("https://your-target-url.com");
-    {locator_call}.first().click();
+    {locator_call}{first_suffix}.click();
   }});
 }});
 '''
@@ -299,7 +452,7 @@ def generate_cypress_code(
     return f'''describe("SmartLocator example", () => {{
   it("locates and clicks the element", () => {{
     cy.visit("https://your-target-url.com");
-    {locator_call}.first().click();
+    {locator_call}{first_suffix}.click();
   }});
 }});
 '''

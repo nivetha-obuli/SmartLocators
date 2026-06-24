@@ -26,7 +26,7 @@ function copyCommand() {
   navigator.clipboard.writeText(cmd).then(() => {
     const btn = document.querySelector(".copy-cmd-btn");
     btn.textContent = "✅ Copied!";
-    setTimeout(() => btn.textContent = "📋 Copy", 1800);
+    setTimeout(() => btn.textContent = "📋 Copy CSS", 1800);
   });
 }
 
@@ -172,7 +172,7 @@ function renderGrid(elements) {
           <div class="locator-xpath" style="margin-top:.25rem;"><strong>XPath:</strong> <code>${truncate(xpathForBest, 80)}</code></div>
         </div>
         <div style="display:inline-block;margin-left:.6rem">
-          <button onclick="copyLocator('${escapeHtml(best.value)}', event)">📋 Copy</button>
+          <button onclick="copyLocator('${escapeHtml(best.value)}', event)">📋 Copy CSS</button>
           <button onclick="copyAsXPath('${escapeHtml(best.value)}','${escapeHtml(best.locator_type)}', event)">🔁 Copy XPath</button>
         </div>
       </div>
@@ -181,7 +181,7 @@ function renderGrid(elements) {
         <span class="score-pct">${pct}%</span>
       </div>
       <div class="card-actions">
-        <button onclick="copyLocator('${escapeHtml(best.value)}', event)">📋 Copy</button>
+        <button onclick="copyLocator('${escapeHtml(best.value)}', event)">📋 Copy CSS</button>
         <button onclick="showDetails(${el.element_index})">🔎 Details</button>
         <button class="validate-btn" data-validate-index="${el.element_index}" onclick="validateLocator(${el.element_index})">✅ Validate</button>
       </div>
@@ -312,7 +312,7 @@ function showDetails(index) {
           <button class="card-actions" onclick="copyLocator('${escapeHtml(loc.value)}', event)"
             style="font-size:.76rem;padding:3px 9px;border:1px solid var(--border);
                    background:transparent;color:var(--text);border-radius:5px;cursor:pointer">
-            📋 Copy
+            📋 Copy CSS
           </button>
           <button class="card-actions" onclick="copyAsXPath('${escapeHtml(loc.value)}','${escapeHtml(loc.locator_type)}', event)"
             style="font-size:.76rem;padding:3px 9px;border:1px solid var(--border);
@@ -422,7 +422,7 @@ function copyLocator(value, event) {
     if (event && event.target) {
       const btn = event.target;
       btn.textContent = "✅ Copied!";
-      setTimeout(() => btn.textContent = "📋 Copy", 1600);
+      setTimeout(() => btn.textContent = "📋 Copy CSS", 1600);
     }
   });
 }
