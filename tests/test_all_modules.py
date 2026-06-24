@@ -492,6 +492,32 @@ class TestAPI:
         assert "username" in code
         assert "WebDriverWait" in code
  
+    def test_generate_playwright_js_code(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "xpath",
+            "locator_value": '//*[@id="username"]',
+            "target":        "playwright",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "require(\"playwright\")" in code
+        assert "page.locator(\"xpath=//*[@id=\"username\"]\")" in code
+ 
+    def test_generate_cypress_code(self, client):
+        resp = client.post("/validate/generate-code", json={
+            "url":           "https://example.com",
+            "locator_type":  "css",
+            "locator_value": ".btn-primary",
+            "target":        "cypress",
+            "language":      "js",
+        })
+        assert resp.status_code == 200
+        code = resp.json()["code"]
+        assert "cy.get(\".btn-primary\")" in code
+        assert "cy.visit(\"https://your-target-url.com\")" in code
+ 
     def test_export_pom_endpoint(self, client):
         # First analyze to get elements
         analyze = client.post("/analyze/", json={

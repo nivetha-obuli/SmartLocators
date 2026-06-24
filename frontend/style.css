@@ -426,6 +426,21 @@ select {
   opacity: 0;
 }
 
+.validate-status,
+.validate-card-status {
+  margin: 0.8rem 0 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #bae6fd;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.validate-card-status {
+  margin-top: 0.8rem;
+}
+
 .locator-row {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -640,6 +655,46 @@ select {
   align-items: center;
   gap: 0.3rem;
   font-size: 0.82rem;
+}
+
+/* ── Pagination ── */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 3rem;
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-container.hidden {
+  display: none;
+}
+
+.load-more-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  padding: 0.8rem 2rem;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.load-more-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.load-more-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .os-label {

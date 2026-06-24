@@ -20,6 +20,10 @@ class AnalyzeRequest(BaseModel):
     content: str                        # URL string or raw HTML
     filter_tag: Optional[str] = None    # e.g., "input", "button"
     filter_attribute: Optional[str] = None
+    limit: int = 100                    # Max elements per request
+    offset: int = 0                     # Skip first N elements
+    search_query: Optional[str] = None  # Text search over tag/text/attributes/locators
+    reliability_filter: Optional[ReliabilityScore] = None
 
 class Locator(BaseModel):
     locator_type: LocatorType
@@ -39,14 +43,33 @@ class WebElement(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     url: Optional[str]
-    total_elements: int
+    total_elements: int                 # Elements in this batch
+    total_available: int                # Total elements on page
+    offset: int                         # Current offset
     elements: List[WebElement]
     page_title: Optional[str]
+
+class CodeGenerationTarget(str, Enum):
+    SELENIUM = "selenium"
+    PLAYWRIGHT = "playwright"
+    CYPRESS = "cypress"
+
+class CodeGenerationLanguage(str, Enum):
+    PYTHON = "python"
+    JS = "js"
+    TS = "ts"
 
 class ValidateRequest(BaseModel):
     url: str
     locator_type: LocatorType
     locator_value: str
+
+class CodeGenerationRequest(BaseModel):
+    url: str
+    locator_type: LocatorType
+    locator_value: str
+    target: CodeGenerationTarget = CodeGenerationTarget.SELENIUM
+    language: CodeGenerationLanguage = CodeGenerationLanguage.PYTHON
 
 class ValidateResponse(BaseModel):
     locator_type: LocatorType

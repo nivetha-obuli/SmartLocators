@@ -1,4 +1,6 @@
+import json
 import os
+import pathlib
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -13,10 +15,10 @@ from selenium.common.exceptions import (
     WebDriverException,
 )
 from webdriver_manager.chrome import ChromeDriverManager
-from backend.models.schemas import LocatorType, ValidateResponse
+from backend.models.schemas import CodeGenerationLanguage, LocatorType, ValidateResponse
  
  
-# ──────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
 #  Driver factory
 # ──────────────────────────────────────────────────────────────
 def _build_driver() -> webdriver.Chrome:
@@ -35,7 +37,20 @@ def _build_driver() -> webdriver.Chrome:
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     opts.add_experimental_option("useAutomationExtension", False)
  
-    service = Service(ChromeDriverManager().install())
+    driver_path = ChromeDriverManager().install()
+    driver_path = pathlib.Path(driver_path)
+    if not driver_path.name.lower().endswith("chromedriver.exe") and driver_path.is_file():
+        parent = driver_path.parent
+        exe_candidate = parent / "chromedriver.exe"
+        if exe_candidate.exists():
+            driver_path = exe_candidate
+        else:
+            # Fallback to any executable in the same directory
+            exe_files = [p for p in parent.iterdir() if p.is_file() and p.suffix.lower() == ".exe"]
+            if exe_files:
+                driver_path = exe_files[0]
+
+    service = Service(str(driver_path))
     return webdriver.Chrome(service=service, options=opts)
  
  
@@ -200,4 +215,91 @@ element.click()           # click the element
  
 # ── Cleanup ────────────────────────────────────
 driver.quit()
+'''
+
+
+def _playwright_selector(locator_type: LocatorType, locator_value: str) -> str:
+    return f"xpath={locator_value}" if locator_type == LocatorType.XPATH else locator_value
+
+
+def generate_playwright_code(
+    locator_type: LocatorType,
+    locator_value: str,
+    language: CodeGenerationLanguage,
+) -> str:
+    selector = _playwright_selector(locator_type, locator_value)
+
+    if language == CodeGenerationLanguage.TS:
+        return f'''import {{ chromium }} from "playwright";
+
+(async () => {{
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  await page.goto("https://your-target-url.com");
+
+  const element = page.locator("{selector}").first();
+  await element.click();
+
+  await browser.close();
+}})();
+'''
+
+    if language == CodeGenerationLanguage.JS:
+        return f'''const {{ chromium }} = require("playwright");
+
+(async () => {{
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  await page.goto("https://your-target-url.com");
+
+  const element = page.locator("{selector}").first();
+  await element.click();
+
+  await browser.close();
+}})();
+'''
+
+    return f'''from playwright.sync_api import sync_playwright
+
+with sync_playwright() as playwright:
+    browser = playwright.chromium.launch()
+    page = browser.new_page()
+    page.goto("https://your-target-url.com")
+
+    element = page.locator("{selector}").first
+    element.click()
+
+    browser.close()
+'''
+
+
+def generate_cypress_code(
+    locator_type: LocatorType,
+    locator_value: str,
+    language: CodeGenerationLanguage,
+) -> str:
+    if locator_type == LocatorType.XPATH:
+        locator_call = f'cy.xpath("{locator_value}")'
+    else:
+        locator_call = f'cy.get("{locator_value}")'
+
+    if language == CodeGenerationLanguage.TS:
+        return f'''describe("SmartLocator example", () => {{
+  it("locates and clicks the element", () => {{
+    cy.visit("https://your-target-url.com");
+    {locator_call}.first().click();
+  }});
+}});
+'''
+
+    return f'''describe("SmartLocator example", () => {{
+  it("locates and clicks the element", () => {{
+    cy.visit("https://your-target-url.com");
+    {locator_call}.first().click();
+  }});
+}});
 '''

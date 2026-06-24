@@ -1,6 +1,17 @@
 from fastapi import APIRouter, HTTPException
-from backend.models.schemas import ValidateRequest, ValidateResponse
-from backend.core.selenium_client import SeleniumValidator, generate_selenium_code
+from backend.models.schemas import (
+    CodeGenerationLanguage,
+    CodeGenerationRequest,
+    CodeGenerationTarget,
+    ValidateRequest,
+    ValidateResponse,
+)
+from backend.core.selenium_client import (
+    SeleniumValidator,
+    generate_cypress_code,
+    generate_playwright_code,
+    generate_selenium_code,
+)
  
 router    = APIRouter(prefix="/validate", tags=["validate"])
 validator = SeleniumValidator()
@@ -24,13 +35,26 @@ def validate_locator(request: ValidateRequest):
  
  
 @router.post("/generate-code")
-def generate_code(request: ValidateRequest):
-    """Generate a ready-to-use Selenium Python code snippet."""
+def generate_code(request: CodeGenerationRequest):
+    """Generate ready-to-use locator code for Selenium, Playwright, or Cypress."""
     try:
-        code = generate_selenium_code(
-            request.locator_type,
-            request.locator_value,
-        )
+        if request.target == CodeGenerationTarget.PLAYWRIGHT:
+            code = generate_playwright_code(
+                request.locator_type,
+                request.locator_value,
+                request.language,
+            )
+        elif request.target == CodeGenerationTarget.CYPRESS:
+            code = generate_cypress_code(
+                request.locator_type,
+                request.locator_value,
+                request.language,
+            )
+        else:
+            code = generate_selenium_code(
+                request.locator_type,
+                request.locator_value,
+            )
         return {"code": code}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Code generation error: {str(e)}")

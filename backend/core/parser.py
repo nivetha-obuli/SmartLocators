@@ -33,14 +33,18 @@ class HTMLParser:
         soup: BeautifulSoup,
         filter_tag: Optional[str] = None,
         filter_attribute: Optional[str] = None,
-        limit: int = 100
-    ) -> List[Tag]:
-        """Extract relevant interactive elements from parsed HTML."""
+        limit: int = 100,
+        offset: int = 0
+    ) -> tuple:
+        """
+        Extract relevant interactive elements from parsed HTML.
+        Returns (elements, total_count) where total_count is total before offset.
+        """
         tags_to_search = [filter_tag] if filter_tag else list(INTERACTIVE_TAGS)
         elements = []
 
         for tag_name in tags_to_search:
-            found = soup.find_all(tag_name, limit=limit)
+            found = soup.find_all(tag_name)  # Get all, no limit here
             for el in found:
                 if not isinstance(el, Tag):
                     continue
@@ -60,7 +64,12 @@ class HTMLParser:
                 seen.add(key)
                 unique.append(el)
 
-        return unique[:limit]
+        total_count = len(unique)
+        # If limit <= 0 treat as no limit (return all remaining)
+        if limit is None or limit <= 0:
+            return unique[offset:], total_count
+
+        return unique[offset:offset+limit], total_count
 
     def get_element_attributes(self, element: Tag) -> dict:
         """Extract all attributes from an element as a flat dict."""
